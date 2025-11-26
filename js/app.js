@@ -4,6 +4,7 @@ import { LocalStore } from './stores/LocalStore.js';
 import { FirebaseStore } from './stores/FirebaseStore.js';
 import { renderHolidayList } from './ui/renderers.js';
 import { renderItinerary } from './ui/renderers.js';
+import { togglePasswordVisibility } from './ui/login.js';
 import { closeHoliday } from './handlers/holidays.js';
 import * as authHandlers from './handlers/auth.js';
 import * as holidayHandlers from './handlers/holidays.js';
@@ -53,6 +54,7 @@ store.subscribe((holidays) => {
 window.loginWithGoogle = () => authHandlers.loginWithGoogle(store);
 window.handleEmailAuth = (e) => authHandlers.handleEmailAuth(e, store);
 window.logout = () => authHandlers.logout(store);
+window.togglePasswordVisibility = () => togglePasswordVisibility();
 
 // Holiday handlers
 window.createHoliday = (e) => holidayHandlers.createHoliday(e, store);
