@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, query, where, or, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { DataStore } from './DataStore.js';
 import { switchView } from '../ui/views.js';
@@ -15,6 +15,7 @@ export class FirebaseStore extends DataStore {
         this.appId = appId;
         this.userId = null;
         this.collectionRef = null;
+        this.unsubscribers = [];
 
         this.initAuth();
     }
@@ -27,7 +28,9 @@ export class FirebaseStore extends DataStore {
                 this.setupListener();
                 updateNavbar(user);
                 switchView('list');
+                switchView('list');
             } else {
+                this.cleanupListeners();
                 this.userId = null;
                 window.currentUser = null;
                 this.collectionRef = null;
@@ -37,24 +40,26 @@ export class FirebaseStore extends DataStore {
         });
     }
 
+    cleanupListeners() {
+        if (this.unsubscribers) {
+            this.unsubscribers.forEach(unsub => unsub());
+            this.unsubscribers = [];
+        }
+    }
+
     async loginWithGoogle() {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(this.auth, provider);
     }
 
-    async loginWithEmail(email, password) {
-        await signInWithEmailAndPassword(this.auth, email, password);
-    }
 
-    async registerWithEmail(email, password) {
-        await createUserWithEmailAndPassword(this.auth, email, password);
-    }
 
     async logout() {
         await signOut(this.auth);
     }
 
     setupListener() {
+        this.cleanupListeners();
         if (!this.userId) return;
         const path = `holiday`;
         this.collectionRef = collection(this.db, path);
@@ -85,7 +90,7 @@ export class FirebaseStore extends DataStore {
         };
 
         // Subscribe to Owned
-        onSnapshot(qOwned, (snapshot) => {
+        const unsubOwned = onSnapshot(qOwned, (snapshot) => {
             ownedHolidays = [];
             snapshot.forEach(doc => {
                 ownedHolidays.push({ id: doc.id, ...doc.data() });
@@ -96,7 +101,7 @@ export class FirebaseStore extends DataStore {
         });
 
         // Subscribe to Shared
-        onSnapshot(qShared, (snapshot) => {
+        const unsubShared = onSnapshot(qShared, (snapshot) => {
             sharedHolidays = [];
             snapshot.forEach(doc => {
                 sharedHolidays.push({ id: doc.id, ...doc.data() });
@@ -105,6 +110,8 @@ export class FirebaseStore extends DataStore {
         }, (error) => {
             console.error("Error fetching shared holidays:", error);
         });
+
+        this.unsubscribers.push(unsubOwned, unsubShared);
     }
 
     async addHoliday(name) {
