@@ -202,10 +202,13 @@ export function renderItinerary(holiday) {
 
             const timeDisplay = item.time ? dayjs(`2000-01-01 ${item.time}`).format('h:mm A') : 'All Day';
 
-            let deleteBtn = '';
+            let actionBtns = '';
             if (canEdit) {
-                deleteBtn = `
+                actionBtns = `
                 <div class="flex items-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 sm:static sm:opacity-100">
+                    <button onclick="openAddItemModal('${item.id}')" class="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Edit">
+                        <i class="ph ph-pencil-simple text-lg"></i>
+                    </button>
                     <button onclick="deleteItem('${item.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                         <i class="ph ph-trash text-lg"></i>
                     </button>
@@ -226,7 +229,7 @@ export function renderItinerary(holiday) {
                     ` : ''}
                     ${item.notes ? `<p class="text-sm text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg">${item.notes}</p>` : ''}
                 </div>
-                ${deleteBtn}
+                ${actionBtns}
             `;
             itemsContainer.appendChild(itemEl);
         });

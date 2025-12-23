@@ -42,17 +42,36 @@ function renderCollaboratorsList(holiday) {
     collaborators.forEach(c => {
         const div = document.createElement('div');
         div.className = "flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200";
+
+        // Viewer vs Editor check logic for displaying the dropdown (Only owner can see/change this, which is verified in openShareModal)
+        // Since the whole modal is owner-only, we can show controls.
+
         div.innerHTML = `
             <div>
                 <p class="text-sm font-medium text-slate-900">${c.email}</p>
-                <span class="text-xs text-slate-500 uppercase tracking-wider">${c.role}</span>
+                <div class="flex items-center gap-2 mt-1">
+                     <select onchange="updateCollaboratorRole('${c.email}', this.value)" class="text-xs bg-white border border-slate-300 rounded px-2 py-0.5 text-slate-600 focus:ring-1 focus:ring-primary-500 outline-none">
+                        <option value="viewer" ${c.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+                        <option value="editor" ${c.role === 'editor' ? 'selected' : ''}>Editor</option>
+                    </select>
+                </div>
             </div>
-            <button onclick="removeCollaborator('${c.email}')" class="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50">
+            <button onclick="removeCollaborator('${c.email}')" class="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50" title="Remove User">
                 <i class="ph ph-trash"></i>
             </button>
         `;
         container.appendChild(div);
     });
+}
+
+export async function updateCollaboratorRole(email, newRole, store) {
+    if (!currentSharingHolidayId) return;
+    try {
+        await store.shareHoliday(currentSharingHolidayId, email, newRole);
+        // No need for alert, silent update
+    } catch (err) {
+        alert("Failed to update role: " + err.message);
+    }
 }
 
 export async function addCollaborator(e, store) {
@@ -62,7 +81,7 @@ export async function addCollaborator(e, store) {
     const emailInput = document.getElementById('share-email-input');
     const roleSelect = document.getElementById('share-role-select');
 
-    const email = emailInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
     const role = roleSelect.value;
 
     if (!email) return;
@@ -77,15 +96,7 @@ export async function addCollaborator(e, store) {
         emailInput.value = '';
 
         // Refresh list
-        // Note: The UI updates automatically via the snapshot listener in store
-        // But we might want to refresh the modal specifically if the snapshot doesn't trigger a full re-render of the modal
-        // Since the modal is just reading from 'currentHolidays' which is updated, 
-        // we might need to rely on the re-render or manually re-fetch.
-        // For now, let's just close modal or wait for update?
-        // Better: We can rely on the fact that store.onSnapshot will trigger app.js subscription
-        // which updates currentHolidays. We just need to re-render the list inside the modal if it's open.
-        // However, we don't have direct access to the latest holiday object here instantly unless we wait.
-
+        // Note: UI updates automatically via listener
     } catch (err) {
         alert("Failed to add collaborator: " + err.message);
     } finally {

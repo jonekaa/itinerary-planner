@@ -64,7 +64,7 @@ window.openHoliday = (id) => holidayHandlers.openHoliday(id, currentHolidays);
 window.closeHoliday = () => holidayHandlers.closeHoliday();
 
 // Item handlers
-window.openAddItemModal = () => itemHandlers.openAddItemModal();
+window.openAddItemModal = (itemId) => itemHandlers.openAddItemModal(itemId, currentHolidays);
 window.closeAddItemModal = () => itemHandlers.closeAddItemModal();
 window.saveItem = (e) => itemHandlers.saveItem(e, store, currentHolidays);
 window.deleteItem = (itemId) => itemHandlers.deleteItem(itemId, store, currentHolidays);
@@ -78,5 +78,6 @@ window.openShareModal = (id) => sharingHandlers.openShareModal(id, store, curren
 window.closeShareModal = () => sharingHandlers.closeShareModal();
 window.addCollaborator = (e) => sharingHandlers.addCollaborator(e, store);
 window.removeCollaborator = (email) => sharingHandlers.removeCollaborator(email, store);
+window.updateCollaboratorRole = (email, role) => sharingHandlers.updateCollaboratorRole(email, role, store);
 
 console.log("Wanderlust app initialized successfully!");

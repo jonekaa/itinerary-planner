@@ -133,6 +133,9 @@ export class FirebaseStore extends DataStore {
     async shareHoliday(holidayId, email, role) {
         if (!this.collectionRef) throw new Error("Not connected");
 
+        // Normalize email
+        email = email.toLowerCase();
+
         // 1. Add to sharedEmails array for querying
         // 2. Add/Update detailed collaborator info
 
@@ -162,6 +165,8 @@ export class FirebaseStore extends DataStore {
 
     async removeCollaborator(holidayId, email) {
         if (!this.collectionRef) throw new Error("Not connected");
+
+        email = email.toLowerCase();
 
         const holidayRef = doc(this.collectionRef, holidayId);
         const snapshot = await getDoc(holidayRef);
