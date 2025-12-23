@@ -18,6 +18,41 @@ export async function openShareModal(holidayId, store, currentHolidays) {
 
     // Populate current collaborators
     renderCollaboratorsList(holiday);
+
+    // Populate Access Code
+    const codeDisplay = document.getElementById('access-code-display');
+    const actions = document.getElementById('access-code-actions');
+    const codeEl = document.getElementById('current-access-code');
+
+    if (holiday.accessCode) {
+        codeEl.textContent = holiday.accessCode;
+        codeDisplay.classList.remove('hidden');
+        actions.classList.add('hidden');
+    } else {
+        codeDisplay.classList.add('hidden');
+        actions.classList.remove('hidden');
+    }
+}
+
+export async function generateAccessCode(store) {
+    if (!currentSharingHolidayId) return;
+    try {
+        const code = await store.generateAccessCode(currentSharingHolidayId);
+
+        document.getElementById('current-access-code').textContent = code;
+        document.getElementById('access-code-display').classList.remove('hidden');
+        document.getElementById('access-code-actions').classList.add('hidden');
+
+    } catch (err) {
+        alert("Failed to generate code: " + err.message);
+    }
+}
+
+export function copyAccessCode() {
+    const code = document.getElementById('current-access-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard: " + code);
+    });
 }
 
 export function closeShareModal() {

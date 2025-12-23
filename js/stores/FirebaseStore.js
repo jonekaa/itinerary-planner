@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, signInWithPopup, signInAnonymously, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, query, where, or, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { DataStore } from './DataStore.js';
 import { switchView } from '../ui/views.js';
@@ -14,6 +14,7 @@ export class FirebaseStore extends DataStore {
         this.db = getFirestore(this.app);
         this.appId = appId;
         this.userId = null;
+        this.guestCode = localStorage.getItem('wanderlust_guest_code'); // Restore code if logged in as guest
         this.collectionRef = null;
         this.unsubscribers = [];
 
@@ -52,9 +53,23 @@ export class FirebaseStore extends DataStore {
         await signInWithPopup(this.auth, provider);
     }
 
+    async loginAsGuest(code) {
+        this.guestCode = code;
+        localStorage.setItem('wanderlust_guest_code', code);
+
+        if (this.auth.currentUser && this.auth.currentUser.isAnonymous) {
+            // Already logged in as guest, just refresh listener with new code
+            this.setupListener();
+        } else {
+            await signInAnonymously(this.auth);
+        }
+    }
+
 
 
     async logout() {
+        this.guestCode = null;
+        localStorage.removeItem('wanderlust_guest_code');
         await signOut(this.auth);
     }
 
@@ -63,6 +78,26 @@ export class FirebaseStore extends DataStore {
         if (!this.userId) return;
         const path = `holiday`;
         this.collectionRef = collection(this.db, path);
+
+        // GUEST MODE
+        if (this.auth.currentUser.isAnonymous && this.guestCode) {
+            const qGuest = query(this.collectionRef, where("accessCode", "==", this.guestCode));
+
+            const unsubGuest = onSnapshot(qGuest, (snapshot) => {
+                const holidays = [];
+                snapshot.forEach(doc => {
+                    holidays.push({ id: doc.id, ...doc.data() });
+                });
+                this.notify(holidays);
+            }, (error) => {
+                console.error("Guest access error:", error);
+                alert("Invalid Access Code or Permissions.");
+            });
+            this.unsubscribers.push(unsubGuest);
+            return;
+        }
+
+        // USER MODE
         const userEmail = this.auth.currentUser.email;
 
         // We use two separate listeners to avoid needing a composite index for the 'OR' query
@@ -135,6 +170,22 @@ export class FirebaseStore extends DataStore {
     async updateItinerary(holidayId, itinerary) {
         if (!this.collectionRef) throw new Error("Not connected");
         await updateDoc(doc(this.collectionRef, holidayId), { itinerary });
+    }
+
+    async generateAccessCode(holidayId) {
+        if (!this.collectionRef) throw new Error("Not connected");
+
+        // Simple 6-char random code
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars (I/1, O/0)
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        await updateDoc(doc(this.collectionRef, holidayId), {
+            accessCode: code
+        });
+        return code;
     }
 
     async shareHoliday(holidayId, email, role) {

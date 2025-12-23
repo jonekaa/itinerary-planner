@@ -36,6 +36,11 @@ store.subscribe((holidays) => {
     currentHolidays = holidays;
     renderHolidayList(holidays);
 
+    // Guest Mode Auto-Open
+    if (store.guestCode && holidays.length === 1 && !window.activeHolidayId) {
+        window.openHoliday(holidays[0].id);
+    }
+
     // If we are viewing a holiday, re-render it to show updates
     if (window.activeHolidayId) {
         const holiday = holidays.find(h => h.id === window.activeHolidayId);
@@ -52,6 +57,7 @@ store.subscribe((holidays) => {
 
 // Auth handlers
 window.loginWithGoogle = () => authHandlers.loginWithGoogle(store);
+window.handleGuestLogin = (e) => authHandlers.handleGuestLogin(e, store);
 window.logout = () => authHandlers.logout(store);
 
 // Holiday handlers
@@ -76,5 +82,7 @@ window.closeShareModal = () => sharingHandlers.closeShareModal();
 window.addCollaborator = (e) => sharingHandlers.addCollaborator(e, store);
 window.removeCollaborator = (email) => sharingHandlers.removeCollaborator(email, store);
 window.updateCollaboratorRole = (email, role) => sharingHandlers.updateCollaboratorRole(email, role, store);
+window.generateAccessCode = () => sharingHandlers.generateAccessCode(store);
+window.copyAccessCode = () => sharingHandlers.copyAccessCode();
 
 console.log("Wanderlust app initialized successfully!");
