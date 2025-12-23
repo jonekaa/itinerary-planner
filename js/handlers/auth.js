@@ -13,14 +13,20 @@ export async function handleGuestLogin(e, store) {
     const code = codeInput.value.trim().toUpperCase();
     if (!code) return;
 
+    const btn = e.submitter;
+
     try {
-        const btn = e.submitter;
         btn.disabled = true;
-        btn.innerHTML = '...';
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i>';
 
         await store.loginAsGuest(code);
     } catch (err) {
         alert("Login failed: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Go';
+        }
     }
 }
 

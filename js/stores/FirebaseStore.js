@@ -29,7 +29,6 @@ export class FirebaseStore extends DataStore {
                 this.setupListener();
                 updateNavbar(user);
                 switchView('list');
-                switchView('list');
             } else {
                 this.cleanupListeners();
                 this.userId = null;
