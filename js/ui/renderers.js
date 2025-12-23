@@ -61,14 +61,97 @@ export function renderItinerary(holiday) {
     const container = document.getElementById('itinerary-timeline');
     container.innerHTML = '';
 
+    const currentUserEmail = (window.firebase && window.firebase.auth().currentUser) ? window.firebase.auth().currentUser.email : null;
+    // Wait, we don't have direct access to auth here easily without passing it or using global.
+    // But since renderHolidayList passes data, we can infer some things, but best to rely on what we have.
+    // Actually, `app.js` has `store` but renderers are simple.
+    // We can assume if `holiday.ownerId` matches `holiday.ownerId` (which is circular), wait.
+    // We need to know 'who am I'.
+    // `renderers.js` doesn't know about `store`.
+
+    // Quick fix: Use `firebase.auth().currentUser` if available globally or check `store` if exported (it's not).
+    // Better: In `app.js` when calling `renderItinerary`, we might handle this? 
+    // Or just look at `holiday.ownerId`. We need to compare it with current user ID.
+    // The `store` instance in `app.js` has `userId`.
+    // Let's rely on a global variable for currentUserId set in `app.js` or `window.currentUser`.
+    // In `app.js` line 54, we have `window.loginWithGoogle`.
+
+    // Let's check `app.js` again. `window.currentUser` isn't set.
+    // I should update `app.js` to set `window.currentUser` or similar on auth change.
+    // OR, I can rely on the fact that `FirebaseStore` sets `userId`.
+    // But `renderers.js` is pure UI.
+
+    // Let's assume `window.currentUser` is available. I will add it to `app.js`.
+
+    const isOwner = window.currentUser && window.currentUser.uid === holiday.ownerId;
+
+    // Determine permissions
+    let canEdit = isOwner; // Owners can always edit
+    if (!isOwner && holiday.collaborators) {
+        const me = holiday.collaborators.find(c => c.email === window.currentUser.email);
+        if (me && me.role === 'editor') canEdit = true;
+    }
+
     document.getElementById('detail-title').textContent = holiday.name;
+
+    // Update Header Controls based on permissions
+    const headerContainer = document.querySelector('#view-detail .bg-white'); // The header div
+    // We need to re-render the buttons section or manipulate it. 
+    // Since `renderItinerary` is called every time, we can rebuild the header buttons area.
+
+    // Let's grab the container for buttons
+    const btnContainer = headerContainer.querySelector('.flex.flex-wrap.gap-2');
+
+    let buttonsHtml = '';
+
+    if (canEdit) {
+        buttonsHtml += `
+            <button onclick="openAddItemModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+                <i class="ph-bold ph-plus"></i> Add Activity
+            </button>
+        `;
+    }
+
+    if (isOwner) {
+        buttonsHtml += `
+            <button onclick="openShareModal('${holiday.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2 ml-2">
+                <i class="ph-bold ph-users"></i> Share
+            </button>
+        `;
+    }
+
+    buttonsHtml += `
+        <div class="h-8 w-px bg-slate-200 mx-1 hidden md:block"></div>
+        <button onclick="exportPDF()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <i class="ph-fill ph-file-pdf text-red-500"></i> PDF
+        </button>
+        <button onclick="exportExcel()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <i class="ph-fill ph-file-xls text-green-600"></i> Excel
+        </button>
+    `;
+
+    btnContainer.innerHTML = buttonsHtml;
+
+    // Add "Shared with me" badge if not owner
+    const existingBadge = headerContainer.querySelector('.shared-badge');
+    if (existingBadge) existingBadge.remove();
+
+    if (!isOwner) {
+        const badge = document.createElement('div');
+        badge.className = "shared-badge mt-2 text-xs text-slate-500 flex items-center gap-1";
+        badge.innerHTML = `<i class="ph-fill ph-user-circle"></i> Shared by ${holiday.ownerEmail || 'Owner'}`;
+        // Insert after description
+        const desc = headerContainer.querySelector('p.text-sm.text-slate-500');
+        desc.parentNode.insertBefore(badge, desc.nextSibling);
+    }
+
 
     if (!holiday.itinerary || holiday.itinerary.length === 0) {
         container.innerHTML = `
             <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
                 <i class="ph ph-list-plus text-4xl text-slate-300 mb-3"></i>
                 <p class="text-slate-500">Your itinerary is empty.</p>
-                <button onclick="openAddItemModal()" class="mt-4 text-primary-600 font-medium hover:underline">Add your first activity</button>
+                ${canEdit ? `<button onclick="openAddItemModal()" class="mt-4 text-primary-600 font-medium hover:underline">Add your first activity</button>` : ''}
             </div>
         `;
         return;
@@ -119,6 +202,16 @@ export function renderItinerary(holiday) {
 
             const timeDisplay = item.time ? dayjs(`2000-01-01 ${item.time}`).format('h:mm A') : 'All Day';
 
+            let deleteBtn = '';
+            if (canEdit) {
+                deleteBtn = `
+                <div class="flex items-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 sm:static sm:opacity-100">
+                    <button onclick="deleteItem('${item.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                </div>`;
+            }
+
             itemEl.innerHTML = `
                 <div class="sm:w-24 flex-shrink-0 flex items-center gap-2 text-slate-500 font-medium text-sm">
                     <i class="ph ph-clock"></i>
@@ -133,11 +226,7 @@ export function renderItinerary(holiday) {
                     ` : ''}
                     ${item.notes ? `<p class="text-sm text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg">${item.notes}</p>` : ''}
                 </div>
-                <div class="flex items-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 sm:static sm:opacity-100">
-                    <button onclick="deleteItem('${item.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <i class="ph ph-trash text-lg"></i>
-                    </button>
-                </div>
+                ${deleteBtn}
             `;
             itemsContainer.appendChild(itemEl);
         });

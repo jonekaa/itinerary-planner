@@ -10,6 +10,7 @@ import * as authHandlers from './handlers/auth.js';
 import * as holidayHandlers from './handlers/holidays.js';
 import * as itemHandlers from './handlers/items.js';
 import * as exportHandlers from './handlers/export.js';
+import * as sharingHandlers from './handlers/sharing.js';
 
 // --- APP INITIALIZATION ---
 
@@ -71,5 +72,11 @@ window.deleteItem = (itemId) => itemHandlers.deleteItem(itemId, store, currentHo
 // Export handlers
 window.exportPDF = () => exportHandlers.exportPDF(currentHolidays);
 window.exportExcel = () => exportHandlers.exportExcel(currentHolidays);
+
+// Sharing handlers
+window.openShareModal = (id) => sharingHandlers.openShareModal(id, store, currentHolidays);
+window.closeShareModal = () => sharingHandlers.closeShareModal();
+window.addCollaborator = (e) => sharingHandlers.addCollaborator(e, store);
+window.removeCollaborator = (email) => sharingHandlers.removeCollaborator(email, store);
 
 console.log("Wanderlust app initialized successfully!");

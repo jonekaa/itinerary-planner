@@ -5,7 +5,8 @@ export function switchView(viewName) {
     const views = {
         login: document.getElementById('view-login'),
         list: document.getElementById('view-list'),
-        detail: document.getElementById('view-detail')
+        detail: document.getElementById('view-detail'),
+        loading: document.getElementById('view-loading')
     };
 
     Object.values(views).forEach(el => {
