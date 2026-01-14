@@ -199,7 +199,7 @@ export function renderItinerary(holiday) {
 
     sortedDates.forEach(date => {
         const dayGroup = document.createElement('div');
-        dayGroup.className = "mb-12 last:mb-0 relative group/day"; // Added relative for connector line context
+        dayGroup.className = "mb-12 last:mb-0 relative group/day"; 
 
         const dateObj = dayjs(date);
         const isToday = dateObj.isSame(dayjs(), 'day');
@@ -210,7 +210,7 @@ export function renderItinerary(holiday) {
         // OR simpler: draw a line inside the `space-y-6` container that aligns with the icon.
 
         dayGroup.innerHTML = `
-            <div class="flex items-start gap-4 mb-6 sticky top-20 bg-slate-50/95 backdrop-blur-sm py-3 z-10 rounded-xl transition-all">
+            <div class="flex items-start gap-4 mb-6 sticky z-20 top-16 bg-slate-50/95 backdrop-blur-sm py-3 z-10 rounded-xl transition-all">
                 <div class="flex flex-col items-center justify-center w-14 h-14 rounded-2xl ${isToday ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'} flex-shrink-0 z-20 relative">
                     <span class="text-xs font-bold uppercase tracking-wider">${dateObj.format('MMM')}</span>
                     <span class="text-xl font-black leading-none">${dateObj.format('DD')}</span>
@@ -246,9 +246,6 @@ export function renderItinerary(holiday) {
 
             let actionBtns = '';
             if (canEdit) {
-                // Persistent buttons on mobile/hover on desktop logic?
-                // For "Rich Aesthetics", let's make them always visible but subtle, or hover.
-                // Keeping hover for clean look, but ensuring functionality.
                 actionBtns = `
                 <div class="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity absolute top-3 right-3">
                     <button onclick="openAddItemModal('${item.id}')" class="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors" title="Edit">

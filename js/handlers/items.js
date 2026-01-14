@@ -1,7 +1,5 @@
 import { generateUUID } from '../utils.js';
 
-// Itinerary item operations
-// Itinerary item operations
 export function openAddItemModal(itemId = null, currentHolidays = []) {
     const modal = document.getElementById('add-item-modal');
     const form = document.getElementById('add-item-form');
@@ -27,11 +25,9 @@ export function openAddItemModal(itemId = null, currentHolidays = []) {
             btn.textContent = 'Update Activity';
         }
     } else {
-        // Add Mode
         delete form.dataset.editingId;
         title.textContent = 'Add New Activity';
         btn.textContent = 'Save Activity';
-        // Set default date to today 
         document.getElementById('item-date').valueAsDate = new Date();
     }
 
@@ -42,7 +38,7 @@ export function openAddItemModal(itemId = null, currentHolidays = []) {
 export function closeAddItemModal() {
     const modal = document.getElementById('add-item-modal');
     const form = document.getElementById('add-item-form');
-    delete form.dataset.editingId; // Cleanup
+    delete form.dataset.editingId;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 }

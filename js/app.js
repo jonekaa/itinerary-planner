@@ -94,4 +94,4 @@ window.updateCollaboratorRole = (email, role) => sharingHandlers.updateCollabora
 window.generateAccessCode = () => sharingHandlers.generateAccessCode(store);
 window.copyAccessCode = () => sharingHandlers.copyAccessCode();
 
-console.log("Wanderlust app initialized successfully!");
+// console.log("Wanderlust app initialized successfully!");

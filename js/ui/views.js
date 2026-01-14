@@ -1,7 +1,4 @@
-// View management
-
 export function switchView(viewName) {
-    // Look up elements lazily to avoid initialization race conditions
     const views = {
         login: document.getElementById('view-login'),
         list: document.getElementById('view-list'),

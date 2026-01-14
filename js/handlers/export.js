@@ -9,41 +9,146 @@ export function exportPDF(currentHolidays) {
     doc.setFontSize(20);
     doc.text(holiday.name, 14, 20);
 
-    const tableData = (holiday.itinerary || [])
-        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''))
-        .map(item => [
-            item.date,
-            item.time || '-',
-            item.activity,
-            item.location || '-',
-            item.notes || '-'
-        ]);
+    const items = (holiday.itinerary || [])
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
 
-    doc.autoTable({
-        head: [['Date', 'Time', 'Activity', 'Location', 'Notes']],
-        body: tableData,
-        startY: 30,
-        theme: 'grid',
-        headStyles: { fillColor: [14, 165, 233] } // Primary-500
+    const tableBody = [];
+    let lastDate = null;
+
+    items.forEach(item => {
+        // Check for new date group
+        if (item.date !== lastDate) {
+            const dateObj = dayjs(item.date);
+            const dateStr = dateObj.format('dddd, MMMM D, YYYY');
+
+            // Add Header Row
+            tableBody.push([{
+                content: dateStr,
+                colSpan: 4,
+                styles: {
+                    fillColor: [255, 200, 200],
+                    textColor: [29, 31, 33],
+                    fontStyle: 'bold',
+                    halign: 'left'
+                }
+            }]);
+            lastDate = item.date;
+        }
+
+        tableBody.push([
+            item.time || '',
+            item.activity,
+            item.location || '',
+            item.notes || ''
+        ]);
     });
 
-    doc.save(`${holiday.name.replace(/\s+/g, '_')}_Itinerary.pdf`);
+    doc.autoTable({
+        head: [['Time', 'Activity', 'Location', 'Notes']],
+        body: tableBody,
+        startY: 30,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 186, 0], fontStyle: 'bold', textColor: [0, 0, 0] },
+        didParseCell: function (data) {
+            // Check if we are in 'Location' column
+            if (data.section === 'body' && data.column.index === 2) {
+                const textArray = data.cell.text;
+                const text = Array.isArray(textArray) ? textArray.join('') : textArray;
+                if (text && text !== '-' && data.cell.raw && !data.cell.raw.colSpan) {
+                    data.cell.styles.textColor = [56, 189, 248]; // Light Blue
+                }
+            }
+        },
+        didDrawCell: function (data) {
+            // Check if we are in 'Location' column
+            if (data.section === 'body' && data.column.index === 2) {
+                // jspdf-autotable v3 stores text as an array in data.cell.text
+                const textArray = data.cell.text;
+                const text = Array.isArray(textArray) ? textArray.join('') : textArray;
+
+                // Simple check to avoid linking the colspan header if it accidentally matches index 2
+                if (text && text !== '-' && data.cell.raw && !data.cell.raw.colSpan) {
+                    const linkUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;
+                    doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: linkUrl });
+                }
+            }
+        }
+    });
+
+    doc.save(`${holiday.name.replace(/\s+/g, ' ')} Itinerary.pdf`);
 }
 
 export function exportExcel(currentHolidays) {
     const holiday = currentHolidays.find(h => h.id === window.activeHolidayId);
     if (!holiday) return;
 
-    const data = (holiday.itinerary || []).map(item => ({
-        Date: item.date,
-        Time: item.time,
-        Activity: item.activity,
-        Location: item.location,
-        Notes: item.notes
-    }));
+    const getMapLink = (loc) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const items = (holiday.itinerary || [])
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+
+    // Build the data array for the sheet (Array of Arrays)
+    const wsData = [
+        ['Time', 'Activity', 'Location', 'Notes'] // Header Row
+    ];
+
+    const merges = []; // Array to store merge ranges
+    let lastDate = null;
+    let currentRowIndex = 1; // Start after header (0-indexed)
+
+    items.forEach(item => {
+        // Check for new date group
+        if (item.date !== lastDate) {
+            const dateObj = dayjs(item.date);
+            const dateStr = dateObj.format('dddd, MMMM D, YYYY');
+
+            // Add Date Header Row
+            wsData.push([dateStr, '', '', '']); // Only first cell has content
+
+            // Merge this row across 4 columns
+            merges.push({ s: { r: currentRowIndex, c: 0 }, e: { r: currentRowIndex, c: 3 } });
+
+            lastDate = item.date;
+            currentRowIndex++;
+        }
+
+        // Add Item Row
+        wsData.push([
+            item.time || '',
+            item.activity,
+            item.location || '',
+            item.notes || ''
+        ]);
+        currentRowIndex++;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Apply merges
+    if (!ws['!merges']) ws['!merges'] = [];
+    ws['!merges'].push(...merges);
+
+    // Apply hyperlinks to the Location column (Index 2: A=0, B=1, C=2)
+    // Iterate through rows to find Location cells.
+    // We can just iterate through the range.
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 1; R <= range.e.r; ++R) {
+        // Skip link if it's a merged date row (check if R is in merges? Or simpler: verify column 2 has content and is not part of a header row logic)
+        // Actually, merged rows usually have content only in the first cell (C=0). C=2 will be empty/undefined in the data array, 
+        // but SheetJS might fill it. 
+        // Safer check: look at ws data. Date rows have content in col 0. Item rows have content in col 0 (Time) or col 1 (Activity).
+        // Let's just check the cell value at C=2.
+
+        const cellAddress = XLSX.utils.encode_cell({ c: 2, r: R }); // Column 2 = Location
+        const cell = ws[cellAddress];
+
+        if (cell && cell.v && cell.v !== '-') {
+            // It's likely a location. Note: Date rows have empty C=2.
+            cell.l = { Target: getMapLink(cell.v) };
+        }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Itinerary");
-    XLSX.writeFile(wb, `${holiday.name.replace(/\s+/g, '_')}.xlsx`);
+    XLSX.writeFile(wb, `${holiday.name.replace(/\s+/g, ' ')} Itinerary.xlsx`);
 }

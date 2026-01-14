@@ -16,7 +16,6 @@ export async function createHoliday(e, store) {
     try {
         await store.addHoliday(name);
         input.value = '';
-        // View will update automatically via listener
     } catch (err) {
         alert('Failed to create holiday: ' + err.message);
     } finally {
