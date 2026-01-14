@@ -103,7 +103,9 @@ export function renderItinerary(holiday) {
     if (backBtnContainer) {
         if (isGuest) {
             backBtnContainer.innerHTML = `
-                
+                <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500" title="Back to Login">
+                    <i class="ph-bold ph-arrow-left text-xl"></i>
+                </button>
                 <div>
                     <h1 id="detail-title" class="text-2xl font-bold text-slate-900">${holiday.name}</h1>
                     <p class="text-sm text-slate-500 flex items-center gap-1">
@@ -206,7 +208,7 @@ export function renderItinerary(holiday) {
         // We'll place it relative to the dayGroup, starting from the header icon down.
         // It needs to connect to the next group, but since we are iterating, we can just draw a long tail 
         // OR simpler: draw a line inside the `space-y-6` container that aligns with the icon.
-        
+
         dayGroup.innerHTML = `
             <div class="flex items-start gap-4 mb-6 sticky top-20 bg-slate-50/95 backdrop-blur-sm py-3 z-10 rounded-xl transition-all">
                 <div class="flex flex-col items-center justify-center w-14 h-14 rounded-2xl ${isToday ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'} flex-shrink-0 z-20 relative">
@@ -259,7 +261,7 @@ export function renderItinerary(holiday) {
             }
 
             itemEl.innerHTML += `
-                <div class="sm:w-20 flex-shrink-0 flex sm:flex-col items-center sm:items-start gap-2 text-slate-500 font-semibold text-xs sm:text-sm uppercase tracking-wide">
+                <div class="sm:w-22 flex-shrink-0 flex sm:flex-col items-center sm:items-start gap-2 text-slate-500 font-semibold text-xs sm:text-sm uppercase tracking-wide">
                     <span class="bg-slate-100 px-2 py-1 rounded-md text-slate-600">${timeDisplay}</span>
                 </div>
                 <div class="flex-grow min-w-0 pr-8">

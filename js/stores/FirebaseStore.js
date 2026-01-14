@@ -26,10 +26,38 @@ export class FirebaseStore extends DataStore {
             if (user) {
                 this.userId = user.uid;
                 window.currentUser = user; // Expose for UI checks
-                this.setupListener();
-                updateNavbar(user);
-                switchView('list');
+
+                // LOGIC BRANCH:
+                // 1. If Real User (Google) -> Full Access
+                // 2. If Anonymous && Has Code -> Guest Access
+                // 3. If Anonymous && No Code -> "Pre-warmed" state (Look like logged out)
+
+                if (!user.isAnonymous) {
+                    // Regular User
+                    this.setupListener();
+                    updateNavbar(user);
+                    switchView('list');
+                } else if (this.guestCode) {
+                    // Guest with Code
+                    this.setupListener();
+                    updateNavbar(null); // Anonymous users don't need a profile header
+                    switchView('list'); // Listener handles routing to detail if only 1 holiday
+                } else {
+                    // Pre-warmed Anonymous User (Waiting for code or login)
+                    // Do nothing visible. Stay on login screen.
+                    // Ideally, ensure navbar is hidden
+                    updateNavbar(null);
+                    switchView('login');
+                }
+
             } else {
+                // No user at all.
+                // EAGER AUTH: Immediately sign in anonymously to "warm up" the connection.
+                console.log("No user found. warming up anonymous session...");
+                signInAnonymously(this.auth).catch(err => {
+                    console.warn("Eager auth failed:", err);
+                });
+
                 this.cleanupListeners();
                 this.userId = null;
                 window.currentUser = null;
@@ -48,6 +76,8 @@ export class FirebaseStore extends DataStore {
     }
 
     async loginWithGoogle() {
+        // This will trigger a redirect or popup, which will eventually fire onAuthStateChanged
+        // The existing anonymous user will be upgraded or replaced.
         const provider = new GoogleAuthProvider();
         await signInWithPopup(this.auth, provider);
     }
@@ -56,10 +86,14 @@ export class FirebaseStore extends DataStore {
         this.guestCode = code;
         localStorage.setItem('wanderlust_guest_code', code);
 
+        // If we are already pre-warmed (anonymous), just trigger the logic
         if (this.auth.currentUser && this.auth.currentUser.isAnonymous) {
-            // Already logged in as guest, just refresh listener with new code
+            console.log("Using pre-warmed session.");
+            // Re-run the state check logic
             this.setupListener();
+            switchView('loading'); // Show loading instead of list to prevent flash
         } else {
+            // Should rarely happen if eager auth works, but fallback:
             await signInAnonymously(this.auth);
         }
     }

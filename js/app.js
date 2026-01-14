@@ -39,6 +39,15 @@ store.subscribe((holidays) => {
     // Guest Mode Auto-Open
     if (store.guestCode && holidays.length === 1 && !window.activeHolidayId) {
         window.openHoliday(holidays[0].id);
+    } else {
+        // If we are in loading view (guest login), waiting for data, and now we have it:
+        // Switch to list view (since we didn't auto-open)
+        const loadingView = document.getElementById('view-loading');
+        if (loadingView && !loadingView.classList.contains('hidden')) {
+            // We need to switch to list view. 
+            // Since app.js doesn't import switchView, we can use closeHoliday which does switchView('list')
+            closeHoliday();
+        }
     }
 
     // If we are viewing a holiday, re-render it to show updates
