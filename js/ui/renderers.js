@@ -199,7 +199,7 @@ export function renderItinerary(holiday) {
 
     sortedDates.forEach(date => {
         const dayGroup = document.createElement('div');
-        dayGroup.className = "mb-12 last:mb-0 relative group/day"; 
+        dayGroup.className = "mb-12 last:mb-0 relative group/day";
 
         const dateObj = dayjs(date);
         const isToday = dateObj.isSame(dayjs(), 'day');

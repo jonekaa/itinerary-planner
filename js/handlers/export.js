@@ -26,8 +26,8 @@ export function exportPDF(currentHolidays) {
                 content: dateStr,
                 colSpan: 4,
                 styles: {
-                    fillColor: [255, 200, 200],
-                    textColor: [29, 31, 33],
+                    fillColor: [253, 226, 231],
+                    textColor: [0, 0, 0],
                     fontStyle: 'bold',
                     halign: 'left'
                 }
@@ -48,7 +48,7 @@ export function exportPDF(currentHolidays) {
         body: tableBody,
         startY: 30,
         theme: 'grid',
-        headStyles: { fillColor: [255, 186, 0], fontStyle: 'bold', textColor: [0, 0, 0] },
+        headStyles: { fillColor: [193, 125, 142], fontStyle: 'bold', textColor: [0, 0, 0] },
         didParseCell: function (data) {
             // Check if we are in 'Location' column
             if (data.section === 'body' && data.column.index === 2) {
